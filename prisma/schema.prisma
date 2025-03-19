@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL") 
+}
+model User {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String?  @unique
+  phone            String?  
+  address          String?
+  password         String
+  additionalAddresses NewAddress[] @relation("UserToNewAddress")
+  newAddress      NewAddress2[]   @relation("UserToNewAddress2")
+  verificationCode Int?
+  locationId       String?   @db.ObjectId// Make the locationId nullable
+  location        Location[] @relation("userToLocation")
+  timeline         Timeline[] @relation("userToTimeline")
+  element          Element[] @relation("userToElement")
+  menu             Menu[] @relation("userTomenu")
+  partition        MenuPartition[] @relation("usertopartition")
+  cars             Car[]   @relation("UserToCar")
+  orders           Order[] @relation("UserToOrder") 
+  promoCodes       PromoCode[]  @relation("userToPromocode")
+  Notify           Notification[] @relation("userToNotify")
+  feedback         Feedback[] @relation("userToFeedback")
+  comment          Comment[] @relation("userToComment")
+  code              String?
+  favourite       Favorite[] @relation("userToFav")
+  payment         PaymentCard[]  @relation("UserToPaymentCard")
+  clientRate      ClientRate[]
+  pushToken          String? 
+}
+model Car {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String
+  ownerName       String
+  email           String
+  phone           String?
+  address         String?
+  imagePaths      String[] 
+  documentPaths   String[]  
+  customer        Customer[]  @relation("CarToCustomers")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  ownerId         String?    @db.ObjectId
+  owner           User?      @relation("UserToCar", fields: [ownerId], references: [id], onDelete: Cascade)
+  orders          Order[]   @relation("CarToOrders")
+  favorite        Favorite[]   @relation("CarToFav")
+}
+
+model Order {
+  id                 String       @id @default(auto()) @map("_id") @db.ObjectId
+  partitionId        String?
+  favorite           Favorite[]
+  type               String?      @default("aa")    
+  elementId          String?      @db.ObjectId
+  element            Element?      @relation("ElementToOrder", fields: [elementId], references: [id], onDelete: Cascade)
+  elementName        String?
+  elementDescription String?
+  priceSizes         Json?
+  quantity           Int?  
+  paymentId          String?       @db.ObjectId
+  payment            Payment?      @relation("112", fields: [paymentId], references: [id])   
+  imageUrl           String?
+  comments           Comment[]     @relation("OrderToComments")
+  buyerName          String?
+  status             String?       @default("pending")
+  createdAt          DateTime      @default(now())
+  userId             String?       @db.ObjectId  
+  feedback           Feedback[]    @relation("OrderToFeedback")
+  user               User?         @relation("UserToOrder", fields: [userId], references: [id])
+  promoCodeId        String?       @db.ObjectId
+  promoCode          PromoCode?    @relation("OrderToPromoCode", fields: [promoCodeId], references: [id])
+  size               String?      
+  salad              String?      
+  additions          Json? 
+  additionPrice      Float? 
+  carId              String?       @db.ObjectId
+  car                Car?          @relation("CarToOrders", fields: [carId], references: [id])
+  customerId         String?       @db.ObjectId
+  customer           Customer?     @relation("CustomerToOrders", fields: [customerId], references: [id], onDelete: Cascade)
+  pushToken          String? 
+}
+model Customer {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  phone       String
+  address     String
+  carId       String?       @db.ObjectId
+  car         Car?          @relation("CarToCustomers", fields: [carId], references: [id])
+  orders      Order[]       @relation("CustomerToOrders")
+}
+model Location {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  longitude Float
+  latitude  Float
+  createdAt DateTime @default(now())
+  user      User?    @relation("userToLocation",fields: [userId], references: [id])
+  userId    String?  @db.ObjectId  
+}
+model DeletedUser {
+  id               String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @unique
+  email     String  @unique
+  name      String
+  reason    String
+  deletedAt DateTime @default(now())
+}
+model NewAddress {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @db.ObjectId
+  address   String?
+  latitude  Float?
+  longitude Float?
+  user      User    @relation("UserToNewAddress", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+model NewAddress2 {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String  @db.ObjectId
+  tasnif      String?
+  hay         String?
+  address     String?
+  flat        String?
+  instruction String?
+  user        User    @relation("UserToNewAddress2", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+model Menu {
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId
+  menuName        String
+  menuDescription String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user      User?    @relation("userTomenu",fields: [userId], references: [id])
+  userId    String?  @db.ObjectId
+  partitions      MenuPartition[] @relation("MenuToPartition") 
+}
+model MenuPartition {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  partitionName        String
+  partitionDescription String
+  menuId               String    @db.ObjectId
+  menu                 Menu      @relation("MenuToPartition", fields: [menuId], references: [id],onDelete: Cascade)
+  elements             Element[] @relation("PartitionToElement")
+  user      User?    @relation("usertopartition",fields: [userId], references: [id])
+  userId    String?  @db.ObjectId
+  createdAt            DateTime  @default(now())
+}
+model Element {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  partitionId        String        @db.ObjectId
+  partition          MenuPartition @relation("PartitionToElement", fields: [partitionId], references: [id],onDelete: Cascade)
+  elementName        String
+  elementDescription String
+  priceSizeOptions   Json?
+  imageUrl           String? // Add this field for the image URL       // Make nullable to avoid Prisma errors
+  orders             Order[]       @relation("ElementToOrder") // Opposite relation to Order
+  userId             String?  @db.ObjectId  // Foreign key (nullable if orders can exist without a user)
+  user               User?    @relation("userToElement", fields: [userId], references: [id])
+}
+model Favorite {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String  @db.ObjectId
+  carId          String  @db.ObjectId
+  orderId        String? @db.ObjectId 
+  carName        String?
+  carDescription String?
+  carImage       String?
+
+  user  User   @relation("userToFav", fields: [userId], references: [id], onDelete: Cascade)
+  car   Car    @relation("CarToFav", fields: [carId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id])
+}
+
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String   @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+  userId             String?      @db.ObjectId  
+  user               User?        @relation("userToComment", fields: [userId], references: [id])
+  order     Order    @relation("OrderToComments", fields: [orderId], references: [id])
+}
+model Timeline {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  startDay     String
+  endDay       String
+  timelineType String 
+  schedule     Json 
+  createdAt    DateTime @default(now())
+  user      User?    @relation("userToTimeline",fields: [userId], references: [id])
+  userId    String?  @db.ObjectId  
+}
+model PromoCode {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String   @unique
+  percentage   Float
+  userId       String   @db.ObjectId
+  user         User     @relation("userToPromocode", fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+  orders       Order[]  @relation("OrderToPromoCode")
+}
+model Notification {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  message     String
+  type        String  
+  isRead      Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expireAt    DateTime? 
+  userId      String      @db.ObjectId
+  user        User     @relation("userToNotify", fields: [userId], references: [id])
+}
+model Feedback {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  orderId   String   @db.ObjectId
+  rating    Float?
+  comment   String?
+  createdAt DateTime @default(now())
+  user      User     @relation("userToFeedback", fields: [userId], references: [id])
+  order     Order    @relation("OrderToFeedback", fields: [orderId], references: [id])
+}
+model PaymentCard {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String  @db.ObjectId
+  cardNumber  String  
+  cardHolder  String
+  expiration  String 
+  cvv         String 
+  user        User    @relation("UserToPaymentCard", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+model Payment {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name       String?   // Name of the payer
+  amount     Float    // Payment amount
+  currency   String   // Payment currency
+  orderCount Int      // Number of orders
+  orders     Json     // Store orders as JSON
+  orderId  String?       @db.ObjectId
+  order    Order[]    @relation("112")
+  createdAt  DateTime @default(now()) // Timestamp
+  clientRate        ClientRate[]
+}
+model ClientRate {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  paymentId  String   @db.ObjectId
+  comment    String   // نص التقييم
+  rating     Int?     // تقييم اختياري (1-5)
+  createdAt  DateTime @default(now())  
+
+  // العلاقات
+  user    User    @relation(fields: [userId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
+}
